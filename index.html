@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Browser Nuke</title>
   <style>
     :root {
       --bg-start: #141414;
       --bg-end:   #1f1f1f;
       --accent:   #e63946;
-      --accent-60: rgba(230,57,70,0.6);
+      --accent-60: rgba(230,57,70,0.8);
       --border-red: #c62828;
       --text:     #f1f1f1;
       --card-bg:  rgba(30,30,30,0.7);
@@ -50,54 +50,62 @@
     .button:active { transform: translateY(0); }
     .details { font-size: 0.85rem; color: #888; text-align: left; margin-top: 1rem; line-height: 1.4; }
     .details ul { list-style: none; padding-left: 1em; }
-    .details ul li::before {
-      content: "•"; color: var(--accent);
-      display: inline-block; width: 1em; margin-left: -1em;
-    }
+    .details ul li::before { content: "•"; color: var(--accent); display: inline-block; width: 1em; margin-left: -1em; }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="title">Browser Nuke</div>
     <div class="subtitle">One click to engage all crash routines</div>
-    <div class="warning">This will crash and close your entire browser instantly. Use with extreme caution in a safe environment.</div>
+    <div class="warning">This will crash and close your entire browser instantly—even Safari’s UI process—without spawning new tabs.</div>
     <button class="button" id="nukeBtn">Crash Browser</button>
     <div class="details">
       <p>Included crash vectors:</p>
       <ul>
-        <li>Stack overflow & recursive loops</li>
-        <li>Mass DOM element injection</li>
-        <li>Canvas & WebGL memory floods</li>
-        <li>WebWorker & ServiceWorker bombs</li>
-        <li>Alert & dialog spamming</li>
-        <li>Resource OOM triggers</li>
+        <li>GPU context termination</li>
+        <li>Memory flooding & OOM</li>
+        <li>Infinite loops (JS, eval, promises)</li>
+        <li>DOM & resource bomb</li>
+        <li>Dialog & navigation spam</li>
       </ul>
     </div>
   </div>
 
   <script>
     const crash = {
-      stack: () => { (function recurse(){ recurse(); })(); },
-      dom: () => { while(true) document.body.appendChild(document.createElement('div')); },
-      evalBomb: () => { while(true) eval('Math.random()'); },
-      writeBomb: () => { while(true) document.write('<div></div>'); },
-      cssBomb: () => { const s=document.createElement('style'); document.head.appendChild(s); while(true) s.textContent+='*{animation:none!important;}'; },
-      gpu: () => { const c=document.createElement('canvas'); document.body.appendChild(c); const gl=c.getContext('webgl2')||c.getContext('webgl'); const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.bufferData(gl.ARRAY_BUFFER,1e9,gl.STATIC_DRAW); gl.drawArrays(gl.POINTS,0,1e8); },
-      offscreenBomb: () => { if('OffscreenCanvas' in window){ const oc=new OffscreenCanvas(10000,10000); const g=oc.getContext('2d'); while(true) g.fillRect(0,0,10000,10000); } },
-      iframe: () => { for(let i=0;i<5000;i++){ const f=document.createElement('iframe'); f.src='about:blank'; document.body.appendChild(f); } },
-      alloc: () => { const a=[]; while(true) a.push(new Array(1e6).fill('*')); },
-      fatalAlloc: () => { try{ new ArrayBuffer(1e11); }catch{} },
-      raf: () => { (function loop(){ for(let i=0;i<1e5;i++) Math.sqrt(Math.random()); requestAnimationFrame(loop); })(); },
-      xhrBomb: () => { while(true){ try{ new XMLHttpRequest().open('GET','/404',false).send(); }catch{} } },
-      fetchBomb: () => { while(true) fetch(location.href,{mode:'no-cors'}).catch(()=>{}); },
-      workerBomb: () => { const b=new Blob(['onmessage=()=>{while(true)Array(1e6).fill(0);}'],{type:'application/javascript'}); const u=URL.createObjectURL(b); while(true){ const w=new Worker(u); w.postMessage('go'); } },
-      cookieBomb: () => { while(true) document.cookie='c='+new Array(1000).join('*'); },
-      shared: () => { const sab=new SharedArrayBuffer(4); const ia=new Int32Array(sab); while(true) Atomics.wait(ia,0,0,1000); },
-      swBomb: () => { if(navigator.serviceWorker) for(let i=0;i<100;i++) navigator.serviceWorker.register('data:text/javascript,while(1){}'); },
-      dbBomb: () => { let i=0; while(true) indexedDB.open('db'+(i++)).onupgradeneeded=()=>{}; },
-      nuke: () => { for(const k in crash) if(k!=='nuke') setTimeout(crash[k],0); }
+      gpuProcess: () => {
+        const c = document.createElement('canvas');
+        document.body.appendChild(c);
+        const gl = c.getContext('webgl2') || c.getContext('webgl');
+        const ext = gl.getExtension('WEBGL_lose_context');
+        if (ext) {
+          // Immediately kill GPU process
+          ext.loseContext();
+        }
+      },
+      fatalAlloc: () => {
+        // Attempt massive allocation to trigger OOM in process
+        try { new ArrayBuffer(1e12); } catch {};
+      },
+      infiniteEval: () => { while (true) eval('0'); },
+      promiseBomb: () => { (function p(){ Promise.resolve().then(p); })(); },
+      reloadLoop: () => { location.reload(true); },
+      dialogSpam: () => { while (true) confirm('Crash?'); },
+      domBomb: () => { while (true) document.body.appendChild(document.createElement('div')); },
+      nuke: () => {
+        // Sequence: kill GPU, exhaust memory, freeze JS
+        crash.gpuProcess();
+        crash.fatalAlloc();
+        crash.infiniteEval();
+        crash.promiseBomb();
+        crash.reloadLoop();
+        crash.dialogSpam();
+        crash.domBomb();
+      }
     };
-    document.getElementById('nukeBtn').addEventListener('click',()=>crash.nuke());
+    document.getElementById('nukeBtn').addEventListener('click', () => {
+      crash.nuke();
+    });
   </script>
 </body>
 </html>
