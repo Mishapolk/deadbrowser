@@ -1,19 +1,19 @@
 # DeadBrowser
 
-> A no‑holds‑barred one‑click Chrome destroyer.
+> Do you hate your browser? Subject it to military grade torture here!
 
-**Live demo:** https://mishapolk.github.io/deadbrowser/
+**Try it:** https://mishapolk.github.io/deadbrowser/
 
 ## How to use
 
 1. Open the page in Chrome (or any Chromium‑based browser).  
-2. **Save everything**—you’re about to nuke your whole browser.  
-3. Hit **Crash Browser** and watch it all go dark.
+2. **Save everything that you care about**, because you’re about to nuke your whole browser.  
+3. Hit **Crash Browser** and regret your life choices
 
 ## Why
 
-For extreme debugging or “did‑you‑really‑expect‑that” demos.  
+Because chrome sucks, but also I guess you can do some testing or something idk have fun
 
 ## Warning
 
-This will hang or kill your entire browser process. Don’t blame me if you lose work!  
+No balls.
