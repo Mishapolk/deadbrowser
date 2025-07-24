@@ -9,7 +9,7 @@
       --bg-start:   #141414;
       --bg-end:     #1f1f1f;
       --accent:     #e63946;
-      --accent-60:  rgba(230,57,70,0.6);
+      --accent-60:  rgba(230,57,70,0.8);
       --border-red: #c62828;
       --text:       #f1f1f1;
       --card-bg:    rgba(30,30,30,0.7);
@@ -32,7 +32,12 @@
       text-align:center;
       box-shadow:0 4px 8px rgba(0,0,0,0.5);
     }
-    .title { font-size:1.75rem; margin-bottom:0.5rem; letter-spacing:1px; }
+    .title {
+      font-size:1.75rem;
+      margin-bottom:0.5rem;
+      letter-spacing:1px;
+      white-space: pre;
+    }
     .subtitle { font-size:0.9rem; color:#ccc; margin-bottom:1.5rem; }
     .warning {
       font-size:0.95rem;
@@ -65,14 +70,13 @@
 </head>
 <body>
   <div class="card">
-    <div class="title">Chrome Nuke</div>
+    <div class="title" id="glitchTitle">Chrome Nuke</div>
     <div class="subtitle">You have about a second to save your chrome after you press the button.</div>
     <div class="warning">
       WARNING: THIS WILL FUCK UP YOUR CHROME. PROCEED AT YOUR OWN RISK.
     </div>
     <button class="button" id="nukeBtn">Crash Browser</button>
   </div>
-
   <script>
     const originalURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
@@ -81,7 +85,6 @@
         }
       };
     `], { type: 'application/javascript' }));
-
     const sharedURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         while (true) {
@@ -135,6 +138,28 @@
     }
     document.getElementById('nukeBtn')
             .addEventListener('click', () => setTimeout(nuke, 50));
+    (function(){
+      const title = document.getElementById('glitchTitle');
+      const text = title.textContent;
+      title.textContent = '';
+      const chars = Array.from(text).map(c => {
+        const span = document.createElement('span');
+        span.textContent = c;
+        span.dataset.original = c;
+        title.appendChild(span);
+        return span;
+      });
+      const glyphs = ['Δ','Ψ','Ω','Ξ','Σ','Ϟ','ϟ','Λ','М','¥','%', '$', '#', '@'];
+      setInterval(() => {
+        chars.forEach(span => {
+          if (span.dataset.original !== ' ' && Math.random() < 0.3) {
+            span.textContent = glyphs[Math.floor(Math.random()*glyphs.length)];
+          } else {
+            span.textContent = span.dataset.original;
+          }
+        });
+      }, 80);
+    })();
   </script>
 </body>
 </html>
