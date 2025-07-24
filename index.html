@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chrome Crash Tester</title>
+  <title>Worker Crash Suite</title>
   <style>
     body {
       background: #111;
@@ -22,62 +22,119 @@
       border-radius: 4px;
       border: none;
     }
-    button { background: #d33; color: white; cursor: pointer; }
+    button {
+      background: #d33;
+      color: white;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <h1>Chrome Crash Tester</h1>
-  <p>Select a method, then click “CRASH”</p>
+  <h1>Worker Crash Suite</h1>
+  <p>Pick a method, then hit “CRASH”</p>
   <select id="method">
-    <option value="stack">Infinite Recursion (Stack Overflow)</option>
-    <option value="dom">DOM Bomb (Element Injection)</option>
-    <option value="canvas">Canvas Flood (Memory Leak)</option>
-    <option value="gpu">WebGL Shader Lock (GPU Crash)</option>
-    <option value="blob">Blob URI Spam (Tab Flood)</option>
-    <option value="worker">Web Worker Memory Bomb</option>
-    <option value="iframe">Infinite Iframe Nesting</option>
-    <option value="alloc">Memory Allocation Loop (RAM Flood)</option>
-    <option value="raf">requestAnimationFrame CPU Lock</option>
-    <option value="xhr">Sync XHR Flood</option>
-    <option value="wasm">WebAssembly Memory Bomb</option>
-    <option value="audio">AudioContext Leak</option>
-    <option value="storage">LocalStorage Flood</option>
-    <option value="cookie">Cookie Flood</option>
-    <option value="db">IndexedDB Bomb</option>
-    <option value="sequence">🔥 Full Sequence (All Methods)</option>
+    <option value="singleWorker">Single‐Worker Memory Bomb</option>
+    <option value="multiWorker">Multi‐Worker Memory Flood</option>
+    <option value="sharedWorker">SharedArrayBuffer Flood</option>
+    <option value="wasmWorker">WASM Memory Grower</option>
+    <option value="offscreenWorker">OffscreenCanvas Paint Loop</option>
+    <option value="sequence">🔥 Full Worker Sequence</option>
   </select>
   <button id="crashBtn">CRASH</button>
 
   <script>
-    const crash = {
-      stack:     () => { (function r(){ r(); })(); },
-      dom:       () => { while(true) document.body.appendChild(document.createElement('div')); },
-      canvas:    () => { const c=document.createElement('canvas'); c.width=c.height=10000; document.body.appendChild(c); const ctx=c.getContext('2d'); while(true) ctx.fillRect(0,0,10000,10000); },
-      gpu:       () => { const c=document.createElement('canvas'); document.body.appendChild(c); const gl=c.getContext('webgl')||c.getContext('webgl2'); const s=gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(s,'void main(){for(;;);}'); gl.compileShader(s); const p=gl.createProgram(); gl.attachShader(p,s); gl.linkProgram(p); gl.useProgram(p); gl.drawArrays(gl.POINTS,0,1); },
-      blob:      () => { const payload='data:text/html;base64,'+btoa('<script>location=location<\\/script>'); while(true) window.open(payload); },
-      worker:    () => { const b=new Blob(['onmessage=()=>{while(true)Array(1e6).fill(0);}'],{type:'application/javascript'}); const u=URL.createObjectURL(b); while(true){ const w=new Worker(u); w.postMessage('go'); } },
-      iframe:    () => { for(let i=0;i<10000;i++){ const f=document.createElement('iframe'); f.src='about:blank'; document.body.appendChild(f);} },
-      alloc:     () => { const a=[]; while(true) a.push(new Array(1e6).fill('*')); },
-      raf:       () => { (function loop(){ for(let i=0;i<100000;i++) Math.sqrt(Math.random()); requestAnimationFrame(loop); })(); },
-      xhr:       () => { while(true){ try{ const r=new XMLHttpRequest(); r.open('GET','/404',false); r.send(); } catch{} } },
-      wasm:      () => { const m=new WebAssembly.Memory({initial:256,maximum:256}); const modBytes=new Uint8Array([0,97,115,109,1,0,0,0,1,4,1,96,0,0,3,2,1,0,5,3,1,0,1,7,7,1,3,103,101,116,0,0,10,9,1,7,0,65,0,11]); WebAssembly.instantiate(modBytes,{env:{memory:m}}).then(() => { while(true) m.grow(1); }); },
-      audio:     () => { (function loop(){ new AudioContext(); loop(); })(); },
-      storage:   () => { while(true) localStorage.setItem('x', new Array(1e6).join('*')); },
-      cookie:    () => { while(true) document.cookie = 'c=' + new Array(1000).join('*'); },
-      db:        () => { let i=0; while(true) indexedDB.open('db'+(i++)).onupgradeneeded = ()=>{}; },
+    // create a worker from source string
+    function makeWorker(src) {
+      const blob = new Blob([src], { type: 'application/javascript' });
+      return URL.createObjectURL(blob);
+    }
 
-      sequence:  function(){
-        for(const k in crash){
-          if(k!=='sequence'){
-            try { crash[k](); } catch(e){}
+    // Blob URLs for each worker type
+    const urls = {
+      singleWorker: makeWorker(`
+        onmessage = () => {
+          let arr = [];
+          while (true) arr.push(new Array(1000000).fill('*'));
+        };
+      `),
+
+      multiWorker: makeWorker(`
+        onmessage = () => {
+          let arr = [];
+          while (true) arr.push(new Array(1000000).fill('*'));
+        };
+      `),
+
+      sharedWorker: makeWorker(`
+        onmessage = () => {
+          while (true) {
+            const sb = new SharedArrayBuffer(1024*1024);
+            new Uint8Array(sb)[0] = 1;
           }
+        };
+      `),
+
+      wasmWorker: makeWorker(`
+        onmessage = () => {
+          const bytes = new Uint8Array([
+            0x00,0x61,0x73,0x6d,1,0,0,0,
+            1,4,1,96,0,0,
+            3,2,1,0,
+            5,3,1,0,1,
+            7,7,1,3,103,101,116,0,0,
+            10,9,1,7,0,65,0,11
+          ]);
+          WebAssembly.instantiate(bytes).then(obj => {
+            const mem = obj.instance.exports.memory;
+            while (true) mem.grow(1);
+          });
+        };
+      `),
+
+      offscreenWorker: makeWorker(`
+        onmessage = () => {
+          const oc = new OffscreenCanvas(10000,10000);
+          const ctx = oc.getContext('2d');
+          while (true) ctx.fillRect(0,0,10000,10000);
+        };
+      `)
+    };
+
+    const crash = {
+      singleWorker() {
+        const w = new Worker(urls.singleWorker);
+        w.postMessage('go');
+      },
+      multiWorker() {
+        for (let i = 0; i < 10; i++) {
+          const w = new Worker(urls.multiWorker);
+          w.postMessage('go');
         }
+      },
+      sharedWorker() {
+        const w = new Worker(urls.sharedWorker);
+        w.postMessage('go');
+      },
+      wasmWorker() {
+        const w = new Worker(urls.wasmWorker);
+        w.postMessage('go');
+      },
+      offscreenWorker() {
+        const w = new Worker(urls.offscreenWorker);
+        w.postMessage('go');
+      },
+      sequence() {
+        // launch all at once for maximum speed
+        Object.keys(this).forEach(key => {
+          if (key !== 'sequence') this[key]();
+        });
       }
     };
 
     document.getElementById('crashBtn').addEventListener('click', () => {
-      const m = document.getElementById('method').value;
-      setTimeout(() => crash[m](), 100);
+      const method = document.getElementById('method').value;
+      // give UI a moment to update before crash
+      setTimeout(() => crash[method](), 50);
     });
   </script>
 </body>
