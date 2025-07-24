@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chrome Crash Tester</title>
+  <title>Browser Crash Test Suite</title>
   <style>
     :root {
       --bg: #0e0f11;
@@ -28,97 +28,112 @@
       padding: 2rem;
       border-radius: 12px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      text-align: center;
-      max-width: 600px;
+      max-width: 700px;
       width: 100%;
       border: 1px solid var(--border);
     }
-    h1 {
-      font-size: 1.75rem;
-      margin-bottom: 1rem;
-      color: var(--accent);
+    h1 { font-size: 1.8rem; margin-bottom: 1rem; color: var(--accent); text-align: center; }
+    h2 { margin-top: 2rem; font-size: 1.3rem; color: var(--fg); }
+    .warning { color: var(--accent); font-weight: bold; margin: 0.5rem 0 1rem; }
+    p { color: #ccc; font-size: 0.9rem; margin-bottom: 1rem; }
+    .quick-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
     }
-    .warning {
-      color: var(--accent);
-      font-weight: bold;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-    }
-    p {
-      color: #ccc;
-      margin-bottom: 1.5rem;
-      font-size: 0.9rem;
-    }
-    select, button {
+    button, select {
       font-size: 0.95rem;
       padding: 0.75rem 1.25rem;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: #2a2d34;
       color: var(--fg);
+      cursor: pointer;
       transition: background 0.2s, transform 0.1s;
     }
-    select:hover, button:hover { background: #33363d; }
-    button {
-      margin-top: 1rem;
-      background: var(--accent);
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
+    button:hover, select:hover { background: #33363d; transform: scale(1.02); }
     button:active { transform: scale(0.98); }
+    select { min-width: 200px; margin-right: 0.5rem; }
+    .section { text-align: center; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Chrome Crash Tester</h1>
-    <div class="warning">WARNING: This will crash your browser, even Chrome itself.</div>
-    <p>Select a crash method below. Use only for debugging or educational purposes. You have been warned.</p>
-    <select id="method">
-      <option value="stack">Infinite Recursion (Stack Overflow)</option>
-      <option value="dom">DOM Bomb (Element Explosion)</option>
-      <option value="canvas">Canvas Flood (Memory Leak)</option>
-      <option value="gpu">WebGL Shader Lock (GPU crash)</option>
-      <option value="blob">Blob URI Spawn Loop (All Tabs spam)</option>
-      <option value="worker">Web Worker Memory Bomb</option>
-      <option value="iframe">Infinite Iframe Nesting</option>
-      <option value="alloc">Memory Allocation Loop (RAM Flood)</option>
-      <option value="raf">requestAnimationFrame CPU Lock</option>
-      <option value="xhr">XHR Flood (Synchronous)</option>
-      <option value="wasm">WebAssembly Memory Bomb</option>
-      <option value="audio">AudioContext Leak</option>
-      <option value="storage">LocalStorage Flood</option>
-      <option value="sequence">Full Sequence (All Methods)</option>
-    </select>
-    <br>
-    <button id="crashBtn">Crash</button>
+    <h1>Browser Crash Test Suite</h1>
+    <div class="section">
+      <h2>Quick Crash</h2>
+      <div class="warning">Instantly crash your chosen browser. Use with caution.</div>
+      <div class="quick-buttons">
+        <button onclick="quickCrash('chrome')">Crash Chrome</button>
+        <button onclick="quickCrash('firefox')">Crash Firefox</button>
+        <button onclick="quickCrash('edge')">Crash Edge</button>
+        <button onclick="quickCrash('safari')">Crash Safari</button>
+        <button onclick="quickCrash('opera')">Crash Opera</button>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Advanced Crash Methods</h2>
+      <p>Select from various crash routines below to test individual methods.</p>
+      <select id="method">
+        <option value="stack">Infinite Recursion (Stack Overflow)</option>
+        <option value="dom">DOM Bomb (Element Explosion)</option>
+        <option value="canvas">Canvas Flood (Memory Leak)</option>
+        <option value="gpu">WebGL Shader Lock (GPU crash)</option>
+        <option value="blob">Blob URI Spawn Loop (All Tabs spam)</option>
+        <option value="worker">Web Worker Memory Bomb</option>
+        <option value="iframe">Infinite Iframe Nesting</option>
+        <option value="alloc">Memory Allocation Loop (RAM Flood)</option>
+        <option value="raf">requestAnimationFrame CPU Lock</option>
+        <option value="xhr">XHR Flood (Synchronous)</option>
+        <option value="wasm">WebAssembly Memory Bomb</option>
+        <option value="audio">AudioContext Leak</option>
+        <option value="storage">LocalStorage Flood</option>
+        <option value="sequence">Full Sequence (All Methods)</option>
+      </select>
+      <button id="crashBtn">Run Method</button>
+    </div>
   </div>
+
   <script>
+    // Crash routines
+    const crash = {
+      stack: () => { (function recurse(){ recurse(); })(); },
+      dom: () => { while(true){ document.body.appendChild(document.createElement('div')); } },
+      canvas: () => { const c=document.createElement('canvas'); c.width=c.height=10000; document.body.appendChild(c); const ctx=c.getContext('2d'); while(true){ ctx.fillRect(Math.random()*10000, Math.random()*10000, 100,100); } },
+      gpu: () => { const c=document.createElement('canvas'); document.body.appendChild(c); const gl=c.getContext('webgl'); const src='void main(){for(int i=0;i<9999999;i++);}'; const s=gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(s,src); gl.compileShader(s); const p=gl.createProgram(); gl.attachShader(p,s); gl.linkProgram(p); gl.useProgram(p); gl.drawArrays(gl.POINTS,0,1); },
+      blob: () => { const payload='data:text/html;base64,'+btoa('<script>location="data:text/html;base64,'+btoa('<script>location=location<\/script>')+'"<\/script>'); while(true){ window.open(payload); } },
+      worker: () => { const blob=new Blob(['onmessage=function(){while(true)Array(1e6).fill("*");}']); const url=URL.createObjectURL(blob); while(true){ const w=new Worker(url); w.postMessage('go'); } },
+      iframe: () => { for(let i=0;i<5000;i++){ const f=document.createElement('iframe'); f.src='about:blank'; document.body.appendChild(f);} },
+      alloc: () => { const arr=[]; while(true){ arr.push(new Array(1e6).fill('*')); } },
+      raf: () => { function spin(){ for(let i=0;i<100000;i++)Math.sqrt(Math.random()); requestAnimationFrame(spin);} requestAnimationFrame(spin); },
+      xhr: () => { while(true){ try{ const r=new XMLHttpRequest(); r.open('GET','/nonexistent',false); r.send(); }catch(e){} } },
+      wasm: () => { const buf=new WebAssembly.Memory({initial:256,maximum:256}); WebAssembly.instantiate(new Uint8Array([0,97,115,109,1,0,0,0,1,4,1,96,0,0,3,2,1,0,5,3,1,0,1,7,7,1,3,103,101,116,0,0,10,9,1,7,0,65,0,11]),{env:{memory:buf}}).then(m=>{ while(true){ buf.grow(1); } }); },
+      audio: () => { function leak(){ new AudioContext(); leak(); } leak(); },
+      storage: () => { while(true){ localStorage.setItem('crash', new Array(1e6).join('*')); } },
+      sequence: () => { for(const key in crash){ if(key!=='sequence') crash[key](); } }
+    };
+
+    // Quick Crash mapping
+    function quickCrash(browser) {
+      alert('Quick crash for ' + browser + ' will begin in 1s. Save your work.');
+      setTimeout(() => {
+        switch(browser) {
+          case 'chrome': crash.sequence(); break;
+          case 'firefox': crash.alloc(); break;
+          case 'edge': crash.gpu(); break;
+          case 'safari': crash.dom(); break;
+          case 'opera': crash.wasm(); break;
+          default: crash.sequence();
+        }
+      }, 1000);
+    }
+
+    // Advanced crash button
     document.getElementById('crashBtn').addEventListener('click', () => {
       const method = document.getElementById('method').value;
-      alert('Crash will begin in 2 seconds. Close other tabs and save your work.');
-      setTimeout(() => {
-        const crash = {};
-        crash.stack = () => { (function recurse(){ recurse(); })(); };
-        crash.dom = () => { while(true){ document.body.appendChild(document.createElement('div')); } };
-        crash.canvas = () => { const c=document.createElement('canvas'); c.width=c.height=10000; document.body.appendChild(c); const ctx=c.getContext('2d'); while(true){ ctx.fillRect(Math.random()*10000, Math.random()*10000, 100,100); } };
-        crash.gpu = () => { const c=document.createElement('canvas'); document.body.appendChild(c); const gl=c.getContext('webgl'); const src='void main(){for(int i=0;i<9999999;i++);}'; const s=gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(s,src); gl.compileShader(s); const p=gl.createProgram(); gl.attachShader(p,s); gl.linkProgram(p); gl.useProgram(p); gl.drawArrays(gl.POINTS,0,1); };
-        crash.blob = () => { const payload='data:text/html;base64,'+btoa('<script>location="data:text/html;base64,'+btoa('<script>location=location<\/script>')+'"<\/script>'); while(true){ window.open(payload); } };
-        crash.worker = () => { const blob=new Blob(['onmessage=function(){while(true)Array(1e6).fill("*");}']); const url=URL.createObjectURL(blob); while(true){ const w=new Worker(url); w.postMessage('go'); } };
-        crash.iframe = () => { for(let i=0;i<5000;i++){ const f=document.createElement('iframe'); f.src='about:blank'; document.body.appendChild(f);} };
-        crash.alloc = () => { const arr=[]; while(true){ arr.push(new Array(1e6).fill('*')); } };
-        crash.raf = () => { function spin(){ for(let i=0;i<100000;i++)Math.sqrt(Math.random()); requestAnimationFrame(spin);} requestAnimationFrame(spin); };
-        crash.xhr = () => { while(true){ try{ const r=new XMLHttpRequest(); r.open('GET','/nonexistent',false); r.send(); } catch(e){} } };
-        crash.wasm = () => {
-          const buf=new WebAssembly.Memory({initial:256,maximum:256});
-          WebAssembly.instantiate(new Uint8Array([0,97,115,109,1,0,0,0,1,4,1,96,0,0,3,2,1,0,5,3,1,0,1,7,7,1,3,103,101,116,0,0,10,9,1,7,0,65,0,11]),{env:{memory:buf}})
-            .then(m=>{ while(true){ buf.grow(1); } });
-        };
-        crash.audio = () => { function leak(){ new AudioContext(); leak(); } leak(); };
-        crash.storage = () => { while(true){ localStorage.setItem('crash', new Array(1e6).join('*')); } };
-        crash.sequence = () => { for(const key in crash){ if(key !== 'sequence') crash[key](); } };
-        crash[method]();
-      }, 2000);
+      alert('Running ' + method + ' routine in 2s.');
+      setTimeout(() => { crash[method](); }, 2000);
     });
   </script>
 </body>
